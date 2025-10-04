@@ -1,147 +1,218 @@
 using UnityEngine;
-using UnityEngine.UI;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.EnhancedTouch;
 using System.Collections.Generic;
+using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 
 namespace Ouiki.SiliconeHeart.UI
 {
     [ExecuteAlways]
     public class InfiniteScrollPanel : MonoBehaviour
     {
-        #region Fields
-        [Header("Scroll Area (Content)")]
-        public RectTransform scrollArea;
+        [Header("Panel (Viewport)")]
+        public RectTransform panelRect;
         [Header("Scroll Settings")]
-        public float scrollSpeed = 40f;
-        private float scrollPosition = 0f;
-        private List<GameObject> buildingButtonObjects = new();
-        private HorizontalLayoutGroup layoutGroup;
-        #endregion
+        public float scrollSpeed = 250f;
+        public float buttonWidth = 100f;
+        public float buttonHeight = 100f;
+        public float buttonSpacing = 8f;
 
-        #region Unity Lifecycle
+        private List<RectTransform> buttonRects = new();
+        private float scrollOffset = 0f;
 
-        void OnValidate()
+        // Drag/Swipe tracking
+        private bool isDragging = false;
+        private Vector2 dragStartPos;
+        private float dragStartOffset;
+        private int activePointerId = -1;
+
+        void OnEnable()
         {
-            Debug.Log("[InfiniteScrollPanel] OnValidate called");
-            EnsureLayoutGroup();
+            EnhancedTouchSupport.Enable();
+        }
+        void OnDisable()
+        {
+            EnhancedTouchSupport.Disable();
         }
 
         void Update()
         {
-            if (scrollArea == null)
-            {
-                Debug.LogWarning("[InfiniteScrollPanel] Update aborted: scrollArea is null");
+            if (panelRect == null || buttonRects.Count == 0)
                 return;
-            }
 
-            if (Mouse.current != null && RectTransformUtility.RectangleContainsScreenPoint(scrollArea, Mouse.current.position.ReadValue()))
-            {
-                float wheel = Mouse.current.scroll.y.ReadValue();
-                if (wheel != 0f)
-                {
-                    Debug.Log($"[InfiniteScrollPanel] Scrolling: wheel={wheel}, scrollSpeed={scrollSpeed}, Time.deltaTime={Time.deltaTime}");
-                    scrollPosition += wheel * scrollSpeed * Time.deltaTime;
-                    scrollPosition = Mathf.Clamp(scrollPosition, 0f, GetMaxScroll());
-                    scrollArea.anchoredPosition = new Vector2(-scrollPosition, scrollArea.anchoredPosition.y);
-                    Debug.Log($"[InfiniteScrollPanel] scrollPosition={scrollPosition}, anchoredPosition={scrollArea.anchoredPosition}");
-                }
-            }
+#if UNITY_EDITOR
+            ProcessMouseDrag();
+#else
+            ProcessPointerDrag();
+#endif
+            UpdateButtonPositions();
         }
-        #endregion
 
-        #region Layout & Scroll
-        public void EnsureLayoutGroup()
+        // Mouse drag support (for Editor/testing)
+        void ProcessMouseDrag()
         {
-            if (scrollArea == null)
+            // Mouse over panel? Always allow drag if over panel area
+            Vector2 mousePos = Mouse.current != null ? Mouse.current.position.ReadValue() : Vector2.zero;
+            bool overPanel = RectTransformUtility.RectangleContainsScreenPoint(panelRect, mousePos);
+
+            if (Mouse.current.leftButton.wasPressedThisFrame && overPanel)
             {
-                Debug.LogWarning("[InfiniteScrollPanel] EnsureLayoutGroup aborted: scrollArea is not assigned!");
-                return;
+                isDragging = true;
+                dragStartPos = mousePos;
+                dragStartOffset = scrollOffset;
             }
-            layoutGroup = scrollArea.GetComponent<HorizontalLayoutGroup>();
-            if (layoutGroup == null)
+            else if (Mouse.current.leftButton.wasReleasedThisFrame)
             {
-                Debug.Log("[InfiniteScrollPanel] Adding HorizontalLayoutGroup to scrollArea");
-                layoutGroup = scrollArea.gameObject.AddComponent<HorizontalLayoutGroup>();
-                layoutGroup.childForceExpandHeight = false;
-                layoutGroup.childForceExpandWidth = false;
-                layoutGroup.childAlignment = TextAnchor.MiddleLeft;
-                layoutGroup.spacing = 8f;
+                isDragging = false;
+            }
+
+            if (isDragging)
+            {
+                Vector2 mouseDelta = mousePos - dragStartPos;
+                scrollOffset = dragStartOffset + mouseDelta.x;
             }
             else
             {
-                Debug.Log("[InfiniteScrollPanel] HorizontalLayoutGroup found");
+                // Fallback: Mouse wheel scroll
+                float wheel = Mouse.current != null ? Mouse.current.scroll.y.ReadValue() : 0;
+                if (wheel != 0f && overPanel)
+                {
+                    scrollOffset += wheel * scrollSpeed * Time.deltaTime;
+                }
             }
         }
 
-        float GetMaxScroll()
+        // Touch or Pointer drag support (runtime, device, and EnhancedTouch)
+        void ProcessPointerDrag()
         {
-            float contentWidth = scrollArea.rect.width;
-            float viewWidth = ((RectTransform)scrollArea.parent).rect.width;
-            float maxScroll = Mathf.Max(0f, contentWidth - viewWidth);
-            Debug.Log($"[InfiniteScrollPanel] GetMaxScroll: contentWidth={contentWidth}, viewWidth={viewWidth}, maxScroll={maxScroll}");
-            return maxScroll;
-        }
-        #endregion
+            bool pointerActive = false;
+            Vector2 pointerPos = Vector2.zero;
+            bool pointerDown = false;
+            bool pointerUp = false;
 
-        #region Button Population
+            // EnhancedTouch takes priority if available
+            if (Touch.activeTouches.Count > 0)
+            {
+                foreach (var touch in Touch.activeTouches)
+                {
+                    if (activePointerId == -1 && touch.phase == UnityEngine.InputSystem.TouchPhase.Began &&
+                        RectTransformUtility.RectangleContainsScreenPoint(panelRect, touch.screenPosition))
+                    {
+                        // Start drag
+                        isDragging = true;
+                        activePointerId = touch.touchId;
+                        dragStartPos = touch.screenPosition;
+                        dragStartOffset = scrollOffset;
+                    }
+                    if (activePointerId == touch.touchId && isDragging)
+                    {
+                        pointerActive = true;
+                        pointerPos = touch.screenPosition;
+                        pointerDown = touch.phase == UnityEngine.InputSystem.TouchPhase.Moved || touch.phase == UnityEngine.InputSystem.TouchPhase.Stationary;
+                        pointerUp = touch.phase == UnityEngine.InputSystem.TouchPhase.Ended || touch.phase == UnityEngine.InputSystem.TouchPhase.Canceled;
+                    }
+                }
+            }
+            else // Fallback to mouse or pointer input
+            {
+                var pointer = Pointer.current;
+                if (pointer != null)
+                {
+                    pointerPos = pointer.position.ReadValue();
+                    bool overPanel = RectTransformUtility.RectangleContainsScreenPoint(panelRect, pointerPos);
+
+                    if (pointer.press.wasPressedThisFrame && overPanel)
+                    {
+                        isDragging = true;
+                        activePointerId = 0;
+                        dragStartPos = pointerPos;
+                        dragStartOffset = scrollOffset;
+                    }
+                    if (isDragging && activePointerId == 0)
+                    {
+                        pointerActive = true;
+                        pointerDown = pointer.press.isPressed;
+                        pointerUp = pointer.press.wasReleasedThisFrame;
+                    }
+                }
+            }
+
+            if (pointerActive && pointerDown)
+            {
+                Vector2 delta = pointerPos - dragStartPos;
+                scrollOffset = dragStartOffset + delta.x;
+            }
+            if (pointerUp)
+            {
+                isDragging = false;
+                activePointerId = -1;
+            }
+
+            // Fallback: Mouse wheel scroll
+            float wheel = Mouse.current != null ? Mouse.current.scroll.y.ReadValue() : 0;
+            if (wheel != 0f && RectTransformUtility.RectangleContainsScreenPoint(panelRect, pointerPos))
+            {
+                scrollOffset += wheel * scrollSpeed * Time.deltaTime;
+            }
+        }
+
+        void UpdateButtonPositions()
+        {
+            float totalWidth = buttonRects.Count * (buttonWidth + buttonSpacing);
+            float panelWidth = panelRect.rect.width;
+            float centerX = panelWidth * 0.5f;
+
+            for (int i = 0; i < buttonRects.Count; i++)
+            {
+                RectTransform rt = buttonRects[i];
+                float baseX = i * (buttonWidth + buttonSpacing);
+                float x = baseX + scrollOffset;
+
+                // Loop the button if it's far left or right
+                x = x % totalWidth;
+                if (x < 0) x += totalWidth;
+
+                float anchoredX = x - totalWidth * 0.5f + centerX;
+                rt.anchoredPosition = new Vector2(anchoredX, 0);
+                rt.sizeDelta = new Vector2(buttonWidth, buttonHeight);
+                rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
+                rt.SetParent(panelRect, false);
+                rt.gameObject.SetActive(true);
+            }
+        }
+
         public void Populate(List<GameObject> buttons)
         {
-            Debug.Log($"[InfiniteScrollPanel] Populate called with {buttons.Count} buttons");
-            int childCount = scrollArea.childCount;
-            Debug.Log($"[InfiniteScrollPanel] Clearing {childCount} old children from scrollArea");
-            foreach (Transform child in scrollArea)
+            // Remove old buttons
+            foreach (Transform child in panelRect)
             {
 #if UNITY_EDITOR
                 if (!Application.isPlaying)
-                {
                     DestroyImmediate(child.gameObject);
-                    Debug.Log($"[InfiniteScrollPanel] DestroyImmediate child: {child.gameObject.name}");
-                }
                 else
-                {
                     Destroy(child.gameObject);
-                    Debug.Log($"[InfiniteScrollPanel] Destroy child: {child.gameObject.name}");
-                }
 #else
                 Destroy(child.gameObject);
-                Debug.Log($"[InfiniteScrollPanel] Destroy child: {child.gameObject.name}");
 #endif
             }
-            buildingButtonObjects.Clear();
+            buttonRects.Clear();
 
             foreach (var obj in buttons)
             {
-                obj.transform.SetParent(scrollArea, false);
+                var rt = obj.GetComponent<RectTransform>();
+                if (rt == null)
+                {
+                    rt = obj.AddComponent<RectTransform>();
+                }
+                rt.sizeDelta = new Vector2(buttonWidth, buttonHeight);
+                rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
+                obj.transform.SetParent(panelRect, false);
+                buttonRects.Add(rt);
                 obj.SetActive(true);
-                buildingButtonObjects.Add(obj);
-                Debug.Log($"[InfiniteScrollPanel] Added button: {obj.name} to scrollArea");
-
-                // Setup BuildingButton visuals (name, image)
-                var buttonComp = obj.GetComponent<BuildingButton>();
-                if (buttonComp != null && buttonComp.buildingData != null)
-                {
-                    // Already assigned in SetBuildingData
-                    Debug.Log($"[InfiniteScrollPanel] Button {obj.name} visuals assigned in BuildingButton");
-                }
-                else
-                {
-                    Debug.LogWarning($"[InfiniteScrollPanel] Could not assign visuals for {obj.name} (missing BuildingButton or BuildingData)");
-                }
             }
 
-            LayoutRebuilder.ForceRebuildLayoutImmediate(scrollArea);
-            Debug.Log("[InfiniteScrollPanel] Forced LayoutRebuilder.ForceRebuildLayoutImmediate");
-
-#if UNITY_EDITOR
-            UnityEditor.EditorApplication.QueuePlayerLoopUpdate();
-            UnityEditorInternal.InternalEditorUtility.RepaintAllViews();
-            Debug.Log("[InfiniteScrollPanel] Editor UI repaint requested");
-#endif
-
-            scrollPosition = 0f;
-            scrollArea.anchoredPosition = new Vector2(0f, scrollArea.anchoredPosition.y);
-            Debug.Log("[InfiniteScrollPanel] Reset scrollPosition and scrollArea anchoredPosition");
+            scrollOffset = 0f;
+            UpdateButtonPositions();
         }
-        #endregion
     }
 }

@@ -68,6 +68,13 @@ namespace Ouiki.SiliconeHeart.Input
             selectedBuildingData = null;
             isDraggingFromButton = false;
 
+            // Clear active building when entering Remove mode or leaving Place/Remove
+            if (newMode == GamePlayMode.Remove || newMode == GamePlayMode.None)
+            {
+                if (buildingManager != null)
+                    buildingManager.SetActiveBuilding(null);
+            }
+
             if (oldMode == GamePlayMode.Remove || oldMode == GamePlayMode.Place)
             {
                 gridManager.ClearHighlight();
@@ -97,6 +104,11 @@ namespace Ouiki.SiliconeHeart.Input
 
             if (playModeManager.CurrentMode == GamePlayMode.Remove)
             {
+                // Always clear active building and ghost in remove mode
+                if (buildingManager.activeBuilding != null)
+                    buildingManager.SetActiveBuilding(null);
+                SetGhost(false);
+
                 gridManager.UpdateOverlayVisibility();
                 buildingManager.HandleRemoveHover(gridPos);
 
@@ -284,6 +296,7 @@ namespace Ouiki.SiliconeHeart.Input
                 selectedBuildingData = null;
                 SetGhost(false);
                 gridManager.ClearHighlight();
+                buildingManager.SetActiveBuilding(null);
             }
             else
             {

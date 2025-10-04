@@ -272,7 +272,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.5019608}
+  m_Color: {r: 1, g: 1, b: 1, a: 0.101960786}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
@@ -371,5 +371,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c91bdef776ed17a48a134d684b12cf62, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  buildingData: {fileID: 0}
   buildingNameText: {fileID: 619673063045086793}
   buildingImage: {fileID: 8709258632086791795}

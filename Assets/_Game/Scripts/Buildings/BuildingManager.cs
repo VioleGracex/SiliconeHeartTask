@@ -84,7 +84,7 @@ namespace Ouiki.SiliconeHeart.Buildings
             go.transform.position = centerPos;
 
             var fieldBuilding = go.AddComponent<FieldBuilding>();
-            fieldBuilding.buildingID = activeBuilding.buildingID;
+            fieldBuilding.buildingID = activeBuilding.BuildingID;
             fieldBuilding.gridPos = gridPos;
             fieldBuilding.width = activeBuilding.width;
             fieldBuilding.height = activeBuilding.height;

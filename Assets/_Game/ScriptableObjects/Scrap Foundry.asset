@@ -10,11 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ccabe25656f223f44a9bc8ee8e09030b, type: 3}
-  m_Name: Robot Barn2
+  m_Name: Scrap Foundry
   m_EditorClassIdentifier: 
-  buildingID: 9d4a3fa4-e2a8-40ae-bc85-44fac9630bc4
-  buildingName: Robot Barn2
+  buildingID: af818739-820d-4331-a819-db98ec577788
+  buildingName: Scrap Foundry
   description: 
-  buildingSprite: {fileID: 21300000, guid: 4a3ca79d845ec9048bde84590fdb4b73, type: 3}
-  width: 6
+  buildingSprite: {fileID: 21300000, guid: 5dd1c60f797ea034aaba7f3e97deff92, type: 3}
+  width: 8
   height: 6
+  lastAssetPath: Assets/_Game/ScriptableObjects/Scrap Foundry.asset

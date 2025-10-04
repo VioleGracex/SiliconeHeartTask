@@ -38,7 +38,6 @@ using Ouiki.SiliconeHeart.PlayGameMode;
                 gameModeManager.SetNoneMode();
 
             inputHandler.Init();
-            infiniteScrollPanel.EnsureLayoutGroup();
         }
     }
 }

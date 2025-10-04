@@ -89,7 +89,7 @@ namespace Ouiki.SiliconeHeart.Persistence
 
             foreach (var placed in data.placedBuildings)
             {
-                var def = buildingTypes.Find(b => b.buildingID == placed.buildingID);
+                var def = buildingTypes.Find(b => b.BuildingID == placed.buildingID);
                 if (def != null)
                 {
                     Vector2Int gridPos = new Vector2Int(placed.gridPosX, placed.gridPosY);

@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ccabe25656f223f44a9bc8ee8e09030b, type: 3}
+  m_Name: Recycler Furnace
+  m_EditorClassIdentifier: 
+  buildingID: af818739-820d-4331-a819-db98ec577788
+  buildingName: Recycler Furnace
+  description: 
+  buildingSprite: {fileID: 21300000, guid: 95e5ff6fed447ff44b0890c5a2679203, type: 3}
+  width: 5
+  height: 5
+  lastAssetPath: Assets/_Game/ScriptableObjects/Recycler Furnace.asset

@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ccabe25656f223f44a9bc8ee8e09030b, type: 3}
+  m_Name: Ancient Robot Temple
+  m_EditorClassIdentifier: 
+  buildingID: baf37a6d-5268-45d5-95a7-a085a4761ad5
+  buildingName: Ancient Robot Temple
+  description: 
+  buildingSprite: {fileID: 21300000, guid: e217046a29b4c5e40818f46e0a9d0912, type: 3}
+  width: 8
+  height: 8
+  lastAssetPath: Assets/_Game/ScriptableObjects/Ancient Robot Temple.asset

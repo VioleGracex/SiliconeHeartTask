@@ -245,8 +245,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f1cd7497e9fd81a4b98a36674ef56b3e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gridWidth: 20
-  gridHeight: 12
+  gridWidth: 40
+  gridHeight: 40
   cellSize: 1
   groundParent: {fileID: 1285445542}
   overlayParent: {fileID: 1829308699}
@@ -1403,14 +1403,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1620892469
-Transform:
+--- !u!224 &1620892469
+RectTransform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1620892468}
-  serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
@@ -1418,6 +1417,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 837886741}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1620892470
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1441,7 +1445,16 @@ MonoBehaviour:
   mainUIController: {fileID: 1602148476}
   playModeManager: {fileID: 1704965098}
   buildingTypes:
+  - {fileID: 11400000, guid: 7323db5ed5dd362408c4ffac78472471, type: 2}
+  - {fileID: 11400000, guid: b4759c76ba7f0ec4e98ec4524805f6df, type: 2}
+  - {fileID: 11400000, guid: 38983e4ec5cb82d439091fa1ba2a0f1b, type: 2}
+  - {fileID: 11400000, guid: 41247ee2179730b4a8db1b7e5b6d37da, type: 2}
+  - {fileID: 11400000, guid: efd8d5e3a484b5c4983327c5747ee578, type: 2}
+  - {fileID: 11400000, guid: 42e60ebb9fe934545a212e88d1456ece, type: 2}
+  - {fileID: 11400000, guid: cc301dfdd3a80784cae67811b6ed9687, type: 2}
+  - {fileID: 11400000, guid: 43fde237bd335284dbff4599790d614b, type: 2}
   - {fileID: 11400000, guid: 15473c6036dee974ab0fa8c66b4f57cc, type: 2}
+  - {fileID: 11400000, guid: 8b5b17208def23a44850dcc8a9c22572, type: 2}
   - {fileID: 11400000, guid: 643a66222370fba40929db6fce7371f0, type: 2}
 --- !u!1 &1639928065
 GameObject:
@@ -1900,7 +1913,7 @@ GameObject:
   - component: {fileID: 1814248138}
   - component: {fileID: 1814248141}
   - component: {fileID: 1814248140}
-  - component: {fileID: 1814248139}
+  - component: {fileID: 1814248142}
   m_Layer: 5
   m_Name: InfiniteScrollPanel
   m_TagString: Untagged
@@ -1928,32 +1941,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 150}
   m_SizeDelta: {x: 0, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1814248139
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1814248137}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 30649d3a9faa99c48a7b1166b86bf2a0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_Padding:
-    m_Left: 0
-    m_Right: 0
-    m_Top: 0
-    m_Bottom: 0
-  m_ChildAlignment: 3
-  m_Spacing: 8
-  m_ChildForceExpandWidth: 0
-  m_ChildForceExpandHeight: 0
-  m_ChildControlWidth: 0
-  m_ChildControlHeight: 0
-  m_ChildScaleWidth: 0
-  m_ChildScaleHeight: 0
-  m_ReverseArrangement: 0
 --- !u!114 &1814248140
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1992,6 +1979,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1814248137}
   m_CullTransparentMesh: 1
+--- !u!114 &1814248142
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1814248137}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3312d7739989d2b4e91e6319e9a96d76, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Padding: {x: 0, y: 0, z: 0, w: 0}
+  m_Softness: {x: 0, y: 0}
 --- !u!1 &1829308698
 GameObject:
   m_ObjectHideFlags: 0
@@ -2679,8 +2680,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a62fa853aec8c374f879c6d57958dd19, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  scrollArea: {fileID: 1814248138}
+  panelRect: {fileID: 1814248138}
   scrollSpeed: 40
+  buttonWidth: 100
+  buttonHeight: 100
+  buttonSpacing: 8
 --- !u!4 &2139155188
 Transform:
   m_ObjectHideFlags: 0
