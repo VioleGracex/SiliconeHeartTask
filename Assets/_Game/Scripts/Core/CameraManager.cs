@@ -2,6 +2,7 @@ using UnityEngine;
 using Ouiki.SiliconeHeart.GridSystem;
 using UnityEngine.InputSystem;
 using UnityEngine.EventSystems;
+using Zenject;
 
 namespace Ouiki.SiliconeHeart.Core
 {
@@ -9,7 +10,7 @@ namespace Ouiki.SiliconeHeart.Core
     {
         [Header("References")]
         [SerializeField] private Camera targetCamera;
-        [SerializeField] private GridManager gridManager;
+        [Inject] private GridManager gridManager;
 
         [Header("Camera Movement")]
         public float panSpeed = 10f;

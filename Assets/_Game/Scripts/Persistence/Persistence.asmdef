@@ -1,0 +1,17 @@
+{
+    "name": "Persistence",
+    "rootNamespace": "",
+    "references": [
+        "GUID:9d6d26f92c15be5428348f8d0ff7b3b5",
+        "GUID:628f96f0877e51f41bb4d781618ffb7f"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

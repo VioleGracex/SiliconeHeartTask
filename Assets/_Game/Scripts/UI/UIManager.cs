@@ -6,6 +6,8 @@ namespace Ouiki.SiliconeHeart.UI
     using Ouiki.SiliconeHeart.GridSystem;
     using Zenject;
     using System;
+    using Ouiki.SiliconeHeart.PlayGameMode;
+
 
     public class UIManager : MonoBehaviour
     {
@@ -15,16 +17,18 @@ namespace Ouiki.SiliconeHeart.UI
 
         private GridManager gridManager;
         private BuildingManager buildingManager;
+        [Inject] private PlayModeManager playModeManager; // Injected PlayModeManager
 
         private GameObject currentSilhouette;
         #endregion
 
         #region Zenject Injection
         [Inject]
-        public void Construct(BuildingManager bm, GridManager gm)
+        public void Construct(BuildingManager bm, GridManager gm, PlayModeManager pm)
         {
             buildingManager = bm;
             gridManager = gm;
+            playModeManager = pm;
             SubscribeToModeChanges();
             UpdateModeIndicator();
         }
@@ -32,50 +36,50 @@ namespace Ouiki.SiliconeHeart.UI
 
         #region Mode Indicator
         /// <summary>
-        /// Subscribe to mode change events on BuildingManager.
+        /// Subscribe to mode change events on PlayModeManager.
         /// </summary>
         private void SubscribeToModeChanges()
         {
-            if (buildingManager != null)
+            if (playModeManager != null)
             {
-                buildingManager.OnBuildModeChanged -= OnBuildModeChanged;
-                buildingManager.OnBuildModeChanged += OnBuildModeChanged;
+                playModeManager.OnPlayModeChanged -= OnPlayModeChanged;
+                playModeManager.OnPlayModeChanged += OnPlayModeChanged;
             }
         }
 
         private void OnDestroy()
         {
-            if (buildingManager != null)
+            if (playModeManager != null)
             {
-                buildingManager.OnBuildModeChanged -= OnBuildModeChanged;
+                playModeManager.OnPlayModeChanged -= OnPlayModeChanged;
             }
         }
 
         /// <summary>
-        /// Called when build mode changes.
+        /// Called when play mode changes.
         /// </summary>
-        private void OnBuildModeChanged(BuildMode mode)
+        private void OnPlayModeChanged(GamePlayMode mode)
         {
             UpdateModeIndicator();
         }
 
         /// <summary>
-        /// Updates the mode indicator display based on the current build mode.
+        /// Updates the mode indicator display based on the current play mode.
         /// </summary>
         public void UpdateModeIndicator()
         {
             string text = "Game Mode";
-            if (buildingManager != null)
+            if (playModeManager != null)
             {
-                switch (buildingManager.CurrentMode)
+                switch (playModeManager.CurrentMode)
                 {
-                    case BuildMode.Place:
+                    case GamePlayMode.Place:
                         text = "Place Mode";
                         break;
-                    case BuildMode.Remove:
+                    case GamePlayMode.Remove:
                         text = "Remove Mode";
                         break;
-                    case BuildMode.None:
+                    case GamePlayMode.None:
                         text = "Game Mode";
                         break;
                 }

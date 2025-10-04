@@ -6,6 +6,7 @@ using Ouiki.SiliconeHeart.Buildings;
 using Ouiki.SiliconeHeart.Persistence;
 using Ouiki.SiliconeHeart.GridSystem;
 using DG.Tweening;
+using Ouiki.SiliconeHeart.PlayGameMode;
 
 namespace Ouiki.SiliconeHeart.Core
 {
@@ -38,6 +39,7 @@ namespace Ouiki.SiliconeHeart.Core
         [Inject] BuildingManager buildingManager;
         [Inject] SaveLoadManager saveLoadManager;
         [Inject] GridManager gridManager;
+        [Inject] PlayModeManager playModeManager; // <-- Injected PlayModeManager
         #endregion
 
         #region Public Init
@@ -55,9 +57,9 @@ namespace Ouiki.SiliconeHeart.Core
         void SetupListeners()
         {
             if (placeModeButton != null)
-                placeModeButton.onClick.AddListener(() => OnModeButtonClicked(BuildMode.Place));
+                placeModeButton.onClick.AddListener(() => OnModeButtonClicked(GamePlayMode.Place));
             if (removeModeButton != null)
-                removeModeButton.onClick.AddListener(() => OnModeButtonClicked(BuildMode.Remove));
+                removeModeButton.onClick.AddListener(() => OnModeButtonClicked(GamePlayMode.Remove));
             if (saveButton != null)
                 saveButton.onClick.AddListener(OnSaveClicked);
             if (loadButton != null)
@@ -71,28 +73,30 @@ namespace Ouiki.SiliconeHeart.Core
             var map = inputActions.FindActionMap("UI");
             if (map == null) map = inputActions.actionMaps[0]; // fallback
 
-            map.FindAction("Place", true).performed += ctx => OnModeButtonClicked(BuildMode.Place);
-            map.FindAction("Remove", true).performed += ctx => OnModeButtonClicked(BuildMode.Remove);
+            map.FindAction("Place", true).performed += ctx => OnModeButtonClicked(GamePlayMode.Place);
+            map.FindAction("Remove", true).performed += ctx => OnModeButtonClicked(GamePlayMode.Remove);
             map.FindAction("Save", true).performed += ctx => OnSaveClicked();
             map.FindAction("Load", true).performed += ctx => OnLoadClicked();
 
             inputActions.Enable();
         }
 
-        void OnModeButtonClicked(BuildMode mode)
+        void OnModeButtonClicked(GamePlayMode mode)
         {
             Debug.Log($"[MainUIController] Mode button clicked: {mode}");
-            if (buildingManager.CurrentMode == mode)
+            if (playModeManager == null) return;
+
+            if (playModeManager.CurrentMode == mode)
             {
-                buildingManager.SetMode(BuildMode.None);
+                playModeManager.SetNoneMode();
             }
             else
             {
-                buildingManager.SetMode(mode);
+                playModeManager.SetMode(mode);
             }
 
             UpdateModeVisuals();
-            SetBuildingPanelVisible(buildingManager.CurrentMode == BuildMode.Place);
+            SetBuildingPanelVisible(playModeManager.CurrentMode == GamePlayMode.Place);
 
             if (gridManager != null)
                 gridManager.UpdateOverlayVisibility();
@@ -114,17 +118,19 @@ namespace Ouiki.SiliconeHeart.Core
         #region UI Feedback
         void UpdateModeVisuals()
         {
+            if (playModeManager == null) return;
+
             if (placeHighlight != null)
-                placeHighlight.enabled = (buildingManager.CurrentMode == BuildMode.Place);
+                placeHighlight.enabled = (playModeManager.CurrentMode == GamePlayMode.Place);
             if (removeHighlight != null)
-                removeHighlight.enabled = (buildingManager.CurrentMode == BuildMode.Remove);
+                removeHighlight.enabled = (playModeManager.CurrentMode == GamePlayMode.Remove);
 
             if (placeModeButton != null)
                 placeModeButton.interactable = true;
             if (removeModeButton != null)
                 removeModeButton.interactable = true;
 
-            Debug.Log($"[MainUIController] UpdateModeVisuals: CurrentMode = {buildingManager.CurrentMode}");
+            Debug.Log($"[MainUIController] UpdateModeVisuals: CurrentMode = {playModeManager.CurrentMode}");
         }
         #endregion
 

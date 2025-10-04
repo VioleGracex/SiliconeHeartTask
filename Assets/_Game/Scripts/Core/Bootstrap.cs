@@ -7,6 +7,7 @@ namespace Ouiki.SiliconeHeart.Core
     using Ouiki.SiliconeHeart.UI;
     using Zenject;
     using Ouiki.SiliconeHeart.Input;
+using Ouiki.SiliconeHeart.PlayGameMode;
 
 
     public class Bootstrap : MonoBehaviour
@@ -20,6 +21,7 @@ namespace Ouiki.SiliconeHeart.Core
         [Inject] private MainUIController mainUIController;
         [Inject] private InputHandler inputHandler;
         [Inject] private InfiniteScrollPanel infiniteScrollPanel;
+        [Inject] private PlayModeManager gameModeManager; // <--- Injected, not static
 
         void Start()
         {
@@ -31,11 +33,12 @@ namespace Ouiki.SiliconeHeart.Core
             // Setup UI and listeners
             mainUIController.Init();
 
-            // Optionally set initial mode and ghost state
-            buildingManager.SetMode(BuildMode.None);
+            // Set initial game mode using injected GameModeManager
+            if (gameModeManager != null)
+                gameModeManager.SetNoneMode();
+
             inputHandler.Init();
             infiniteScrollPanel.EnsureLayoutGroup();
-            
         }
     }
 }

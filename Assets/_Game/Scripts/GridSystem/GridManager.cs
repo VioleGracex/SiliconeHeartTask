@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
-using Ouiki.SiliconeHeart.Buildings;
 using Zenject;
+using Ouiki.SiliconeHeart.PlayGameMode;
 
 namespace Ouiki.SiliconeHeart.GridSystem
 {
@@ -40,7 +40,7 @@ namespace Ouiki.SiliconeHeart.GridSystem
         #region Private Fields
         private Cell[,] grid;
         private List<GameObject> highlightedOverlayObjects = new();
-        [Inject] private BuildingManager buildingManager;
+        [Inject] private PlayModeManager playModeManager; // Injected, not static
         #endregion
 
         #region Initialization
@@ -82,10 +82,10 @@ namespace Ouiki.SiliconeHeart.GridSystem
         #region Overlay and Highlight
         public void UpdateOverlayVisibility()
         {
-            if (overlayParent == null || buildingManager == null)
+            if (overlayParent == null || playModeManager == null)
                 return;
-            bool showOverlay = buildingManager.CurrentMode == Ouiki.SiliconeHeart.Buildings.BuildMode.Place
-                            || buildingManager.CurrentMode == Ouiki.SiliconeHeart.Buildings.BuildMode.Remove;
+            bool showOverlay = playModeManager.CurrentMode == GamePlayMode.Place
+                            || playModeManager.CurrentMode == GamePlayMode.Remove;
             overlayParent.gameObject.SetActive(showOverlay);
         }
 
@@ -141,7 +141,6 @@ namespace Ouiki.SiliconeHeart.GridSystem
 
         public bool IsAreaPlaceable(Vector2Int pos, int width, int height)
         {
-            // Instead of error, just return false if any cell is out of bounds
             for (int x = pos.x; x < pos.x + width; x++)
                 for (int y = pos.y; y < pos.y + height; y++)
                 {

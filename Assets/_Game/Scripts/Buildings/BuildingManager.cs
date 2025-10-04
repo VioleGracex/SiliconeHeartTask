@@ -2,23 +2,17 @@ using UnityEngine;
 using System.Collections.Generic;
 using Ouiki.SiliconeHeart.GridSystem;
 using Zenject;
-using Ouiki.SiliconeHeart.Persistence;
 using System;
+using Ouiki.SiliconeHeart.PlayGameMode; // Use your PlayModeManager for mode logic
 
 namespace Ouiki.SiliconeHeart.Buildings
 {
-    public enum BuildMode
-    {
-        None,
-        Place,
-        Remove
-    }
-
     public class BuildingManager : MonoBehaviour
     {
         #region Injected Fields
         [Inject] private GridManager gridManager;
         [Inject] private List<BuildingDataSO> buildingTypes;
+        [Inject] private PlayModeManager playModeManager; // <-- Use injected PlayModeManager
         #endregion
 
         #region Inspector Fields
@@ -28,41 +22,7 @@ namespace Ouiki.SiliconeHeart.Buildings
         #region State Fields
         public List<FieldBuilding> placedBuildings = new List<FieldBuilding>();
         [HideInInspector] public BuildingDataSO activeBuilding;
-        public BuildMode CurrentMode { get; private set; } = BuildMode.None;
         private FieldBuilding hoveredBuilding = null;
-        #endregion
-
-        #region Events
-        public event Action<BuildMode> OnBuildModeChanged;
-        #endregion
-
-        #region Mode Methods
-        public void SetMode(BuildMode mode)
-        {
-            if (CurrentMode == mode)
-            {
-                ResetBuildState();
-                CurrentMode = BuildMode.None;
-            }
-            else
-            {
-                ResetBuildState();
-                CurrentMode = mode;
-            }
-            gridManager.ClearHighlight();
-            OnBuildModeChanged?.Invoke(CurrentMode);
-        }
-
-        public void ResetBuildState()
-        {
-            activeBuilding = null;
-            hoveredBuilding = null;
-        }
-
-        public void SetActiveBuilding(BuildingDataSO buildingData)
-        {
-            activeBuilding = buildingData;
-        }
         #endregion
 
         #region Placement & Removal
@@ -96,9 +56,10 @@ namespace Ouiki.SiliconeHeart.Buildings
 
         public bool TryPlaceBuilding(Vector2Int gridPos)
         {
-            // Defensive: don't place out of bounds
-            if (CurrentMode != BuildMode.Place || activeBuilding == null)
+            // Only allow placement if PlayModeManager is in Place mode
+            if (playModeManager == null || playModeManager.CurrentMode != GamePlayMode.Place || activeBuilding == null)
                 return false;
+
             if (!gridManager.IsAreaPlaceable(gridPos, activeBuilding.width, activeBuilding.height))
                 return false;
 
@@ -160,6 +121,10 @@ namespace Ouiki.SiliconeHeart.Buildings
 
         public bool TryRemoveBuildingAt(Vector2Int gridPos)
         {
+            // Only allow removal if PlayModeManager is in Remove mode
+            if (playModeManager == null || playModeManager.CurrentMode != GamePlayMode.Remove)
+                return false;
+
             FieldBuilding found = placedBuildings.Find(b =>
                 gridPos.x >= b.gridPos.x &&
                 gridPos.x < b.gridPos.x + b.width &&
@@ -173,6 +138,11 @@ namespace Ouiki.SiliconeHeart.Buildings
             }
             Debug.Log("No building found to remove at " + gridPos);
             return false;
+        }
+
+        public void SetActiveBuilding(BuildingDataSO buildingData)
+        {
+            activeBuilding = buildingData;
         }
         #endregion
 

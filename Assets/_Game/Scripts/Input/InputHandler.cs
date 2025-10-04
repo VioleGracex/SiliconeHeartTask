@@ -4,7 +4,7 @@ using UnityEngine.EventSystems;
 using Ouiki.SiliconeHeart.GridSystem;
 using Ouiki.SiliconeHeart.Buildings;
 using Zenject;
-using Ouiki.SiliconeHeart.Core; // For CameraManager
+using Ouiki.SiliconeHeart.PlayGameMode;
 
 namespace Ouiki.SiliconeHeart.Input
 {
@@ -14,7 +14,7 @@ namespace Ouiki.SiliconeHeart.Input
         [Header("References")]
         [Inject] private GridManager gridManager;
         [Inject] private BuildingManager buildingManager;
-        [Inject] private CameraManager cameraManager;
+        [Inject] private PlayModeManager playModeManager; // Injected, not static
         private Camera mainCamera;
         [HideInInspector] public SpriteRenderer ghostRenderer;
 
@@ -28,7 +28,7 @@ namespace Ouiki.SiliconeHeart.Input
 
         public BuildingDataSO SelectedBuildingData => selectedBuildingData;
 
-        private BuildMode previousMode = BuildMode.None;
+        private GamePlayMode previousMode = GamePlayMode.None;
         #endregion
 
         #region Initialization
@@ -51,25 +51,24 @@ namespace Ouiki.SiliconeHeart.Input
         #region Update and Input
         void Update()
         {
-            if (buildingManager.CurrentMode != previousMode)
+            if (playModeManager != null && playModeManager.CurrentMode != previousMode)
             {
-                OnModeChanged(buildingManager.CurrentMode, previousMode);
-                previousMode = buildingManager.CurrentMode;
+                OnModeChanged(playModeManager.CurrentMode, previousMode);
+                previousMode = playModeManager.CurrentMode;
             }
 
-            // Camera drag now handled by CameraManager!
             HandleInput();
             UpdateGhostPosition();
         }
 
-        private void OnModeChanged(BuildMode newMode, BuildMode oldMode)
+        private void OnModeChanged(GamePlayMode newMode, GamePlayMode oldMode)
         {
             SetGhost(false);
             dragBuildingData = null;
             selectedBuildingData = null;
             isDraggingFromButton = false;
 
-            if (oldMode == BuildMode.Remove || oldMode == BuildMode.Place)
+            if (oldMode == GamePlayMode.Remove || oldMode == GamePlayMode.Place)
             {
                 gridManager.ClearHighlight();
             }
@@ -77,7 +76,7 @@ namespace Ouiki.SiliconeHeart.Input
 
         void HandleInput()
         {
-            if (gridManager == null || buildingManager == null || mainCamera == null)
+            if (gridManager == null || buildingManager == null || mainCamera == null || playModeManager == null)
                 return;
 
             Vector2 mouseScreenPos = Mouse.current != null ? Mouse.current.position.ReadValue() : Vector2.zero;
@@ -96,7 +95,7 @@ namespace Ouiki.SiliconeHeart.Input
                 return;
             }
 
-            if (buildingManager.CurrentMode == BuildMode.Remove)
+            if (playModeManager.CurrentMode == GamePlayMode.Remove)
             {
                 gridManager.UpdateOverlayVisibility();
                 buildingManager.HandleRemoveHover(gridPos);
@@ -141,7 +140,7 @@ namespace Ouiki.SiliconeHeart.Input
                 return;
             }
 
-            if (buildingManager.CurrentMode == BuildMode.Place && buildingManager.activeBuilding != null)
+            if (playModeManager.CurrentMode == GamePlayMode.Place && buildingManager.activeBuilding != null)
             {
                 bool validCell = gridManager.IsValidCell(gridPos.x, gridPos.y);
                 bool canPlace = validCell &&
@@ -180,10 +179,13 @@ namespace Ouiki.SiliconeHeart.Input
                 w = dragBuildingData.width;
                 h = dragBuildingData.height;
             }
-            else if (buildingManager.CurrentMode == BuildMode.Place && buildingManager.activeBuilding != null)
+            else
             {
-                w = buildingManager.activeBuilding.width;
-                h = buildingManager.activeBuilding.height;
+                if (playModeManager != null && playModeManager.CurrentMode == GamePlayMode.Place && buildingManager.activeBuilding != null)
+                {
+                    w = buildingManager.activeBuilding.width;
+                    h = buildingManager.activeBuilding.height;
+                }
             }
 
             Vector2 mouseWorldCentered = mouseWorld;
@@ -242,17 +244,20 @@ namespace Ouiki.SiliconeHeart.Input
         #region Public UI Methods
         public void OnPlaceModeSelected()
         {
-            buildingManager.SetMode(BuildMode.Place);
+            if (playModeManager != null)
+                playModeManager.SetPlaceMode();
         }
 
         public void OnRemoveModeSelected()
         {
-            buildingManager.SetMode(BuildMode.Remove);
+            if (playModeManager != null)
+                playModeManager.SetRemoveMode();
         }
 
         public void OnNoneModeSelected()
         {
-            buildingManager.SetMode(BuildMode.None);
+            if (playModeManager != null)
+                playModeManager.SetNoneMode();
         }
 
         public void BeginDragBuilding(BuildingDataSO buildingData)

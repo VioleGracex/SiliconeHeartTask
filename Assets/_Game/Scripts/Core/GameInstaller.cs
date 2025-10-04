@@ -8,6 +8,7 @@ namespace Ouiki.SiliconeHeart.Core
     using Ouiki.SiliconeHeart.UI;
     using Ouiki.SiliconeHeart.Input;
     using System.Collections.Generic;
+    using Ouiki.SiliconeHeart.PlayGameMode;
 
     public class GameInstaller : MonoInstaller
     {
@@ -20,8 +21,9 @@ namespace Ouiki.SiliconeHeart.Core
         public InputHandler inputHandler; 
         public InfiniteScrollPanel infiniteScrollPanel;
         public MainUIController mainUIController;
+        public PlayModeManager playModeManager; 
         public List<BuildingDataSO> buildingTypes;
-        
+     
 
         public override void InstallBindings()
         {
@@ -36,6 +38,8 @@ namespace Ouiki.SiliconeHeart.Core
             Container.Bind<MainUIController>().FromInstance(mainUIController).AsSingle();
 
             Container.Bind<List<BuildingDataSO>>().FromInstance(buildingTypes).AsSingle();
+
+            Container.Bind<PlayModeManager>().FromInstance(playModeManager).AsSingle(); // <-- Bind PlayModeManager
         }
     }
 }
