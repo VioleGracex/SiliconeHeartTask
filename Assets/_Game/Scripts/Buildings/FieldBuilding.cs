@@ -3,6 +3,8 @@ using System;
 
 namespace Ouiki.SiliconeHeart.Buildings
 {
+    [RequireComponent(typeof(SpriteRenderer))]
+    [RequireComponent(typeof(BoxCollider2D))]
     public class FieldBuilding : MonoBehaviour
     {
         public string buildingID;
@@ -12,7 +14,7 @@ namespace Ouiki.SiliconeHeart.Buildings
         public Sprite buildingSprite;
 
         public SpriteRenderer SpriteRenderer { get; private set; }
-        public PolygonCollider2D PolygonCollider2D { get; private set; }
+        public BoxCollider2D BoxCollider2D { get; private set; }
 
         public event Action<FieldBuilding> OnBuildingDeleted;
         private bool isDeleted = false;
@@ -21,35 +23,19 @@ namespace Ouiki.SiliconeHeart.Buildings
         {
             SpriteRenderer = GetComponent<SpriteRenderer>();
 
-            // Remove any existing PolygonCollider2D to reset
+            // Remove any existing collider to reset
             PolygonCollider2D existingPoly = GetComponent<PolygonCollider2D>();
             if (existingPoly != null)
                 Destroy(existingPoly);
 
-            // Add new PolygonCollider2D
-            PolygonCollider2D = gameObject.AddComponent<PolygonCollider2D>();
+            BoxCollider2D = GetComponent<BoxCollider2D>();
+            if (BoxCollider2D == null)
+                BoxCollider2D = gameObject.AddComponent<BoxCollider2D>();
 
-            // Set collider shape to a rectangle matching grid size and cell size
-            if (SpriteRenderer != null)
-            {
-                float cellSize = GetCellSize();
-                float colliderWidth = width * cellSize;
-                float colliderHeight = height * cellSize;
-
-                // Centered at 0,0
-                Vector2 halfSize = new Vector2(colliderWidth / 2f, colliderHeight / 2f);
-
-                // Vertices for rectangle (clockwise)
-                Vector2[] rectVertices = new Vector2[]
-                {
-                    new Vector2(-halfSize.x, -halfSize.y),
-                    new Vector2(-halfSize.x, halfSize.y),
-                    new Vector2(halfSize.x, halfSize.y),
-                    new Vector2(halfSize.x, -halfSize.y)
-                };
-
-                PolygonCollider2D.SetPath(0, rectVertices);
-            }
+            // Set collider size to match grid size and cell size
+            float cellSize = GetCellSize();
+            BoxCollider2D.size = new Vector2(width * cellSize, height * cellSize);
+            BoxCollider2D.offset = Vector2.zero; // Centered on object
         }
 
         /// <summary>

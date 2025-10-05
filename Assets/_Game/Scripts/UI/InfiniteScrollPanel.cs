@@ -12,7 +12,7 @@ namespace Ouiki.SiliconeHeart.UI
         [Header("Panel (Viewport)")]
         public RectTransform panelRect;
         [Header("Scroll Settings")]
-        public float scrollSpeed = 250f;
+        public float scrollSpeed = 1.0f; // Adjusted for touch swipe sensitivity
         public float buttonWidth = 100f;
         public float buttonHeight = 100f;
         public float buttonSpacing = 8f;
@@ -43,7 +43,7 @@ namespace Ouiki.SiliconeHeart.UI
 #if UNITY_EDITOR
             ProcessMouseDrag();
 #else
-            ProcessPointerDrag();
+            ProcessTouchSwipe();
 #endif
             UpdateButtonPositions();
         }
@@ -51,108 +51,91 @@ namespace Ouiki.SiliconeHeart.UI
         // Mouse drag support (for Editor/testing)
         void ProcessMouseDrag()
         {
-            // Mouse over panel? Always allow drag if over panel area
             Vector2 mousePos = Mouse.current != null ? Mouse.current.position.ReadValue() : Vector2.zero;
             bool overPanel = RectTransformUtility.RectangleContainsScreenPoint(panelRect, mousePos);
 
-            if (Mouse.current.leftButton.wasPressedThisFrame && overPanel)
-            {
-                isDragging = true;
-                dragStartPos = mousePos;
-                dragStartOffset = scrollOffset;
-            }
-            else if (Mouse.current.leftButton.wasReleasedThisFrame)
-            {
-                isDragging = false;
-            }
+            float totalWidth = buttonRects.Count * (buttonWidth + buttonSpacing);
+            float panelWidth = panelRect.rect.width;
 
-            if (isDragging)
+            // Only allow drag/scroll if buttons overflow
+            if (totalWidth > panelWidth)
             {
-                Vector2 mouseDelta = mousePos - dragStartPos;
-                scrollOffset = dragStartOffset + mouseDelta.x;
+                if (Mouse.current.leftButton.wasPressedThisFrame && overPanel)
+                {
+                    isDragging = true;
+                    dragStartPos = mousePos;
+                    dragStartOffset = scrollOffset;
+                }
+                else if (Mouse.current.leftButton.wasReleasedThisFrame)
+                {
+                    isDragging = false;
+                }
+
+                if (isDragging)
+                {
+                    Vector2 mouseDelta = mousePos - dragStartPos;
+                    scrollOffset = dragStartOffset + mouseDelta.x;
+                }
             }
             else
             {
-                // Fallback: Mouse wheel scroll
-                float wheel = Mouse.current != null ? Mouse.current.scroll.y.ReadValue() : 0;
-                if (wheel != 0f && overPanel)
-                {
-                    scrollOffset += wheel * scrollSpeed * Time.deltaTime;
-                }
+                // No scroll allowed if buttons fit
+                scrollOffset = 0f;
             }
         }
 
-        // Touch or Pointer drag support (runtime, device, and EnhancedTouch)
-        void ProcessPointerDrag()
+        // Touch swipe support (for devices)
+        void ProcessTouchSwipe()
         {
+            float totalWidth = buttonRects.Count * (buttonWidth + buttonSpacing);
+            float panelWidth = panelRect.rect.width;
+
             bool pointerActive = false;
             Vector2 pointerPos = Vector2.zero;
             bool pointerDown = false;
             bool pointerUp = false;
 
-            // EnhancedTouch takes priority if available
-            if (Touch.activeTouches.Count > 0)
+            // Only allow drag/scroll if buttons overflow
+            if (totalWidth > panelWidth)
             {
-                foreach (var touch in Touch.activeTouches)
+                if (Touch.activeTouches.Count > 0)
                 {
-                    if (activePointerId == -1 && touch.phase == UnityEngine.InputSystem.TouchPhase.Began &&
-                        RectTransformUtility.RectangleContainsScreenPoint(panelRect, touch.screenPosition))
+                    foreach (var touch in Touch.activeTouches)
                     {
-                        // Start drag
-                        isDragging = true;
-                        activePointerId = touch.touchId;
-                        dragStartPos = touch.screenPosition;
-                        dragStartOffset = scrollOffset;
-                    }
-                    if (activePointerId == touch.touchId && isDragging)
-                    {
-                        pointerActive = true;
-                        pointerPos = touch.screenPosition;
-                        pointerDown = touch.phase == UnityEngine.InputSystem.TouchPhase.Moved || touch.phase == UnityEngine.InputSystem.TouchPhase.Stationary;
-                        pointerUp = touch.phase == UnityEngine.InputSystem.TouchPhase.Ended || touch.phase == UnityEngine.InputSystem.TouchPhase.Canceled;
+                        if (activePointerId == -1 && touch.phase == UnityEngine.InputSystem.TouchPhase.Began &&
+                            RectTransformUtility.RectangleContainsScreenPoint(panelRect, touch.screenPosition))
+                        {
+                            isDragging = true;
+                            activePointerId = touch.touchId;
+                            dragStartPos = touch.screenPosition;
+                            dragStartOffset = scrollOffset;
+                        }
+                        if (activePointerId == touch.touchId && isDragging)
+                        {
+                            pointerActive = true;
+                            pointerPos = touch.screenPosition;
+                            pointerDown = touch.phase == UnityEngine.InputSystem.TouchPhase.Moved || touch.phase == UnityEngine.InputSystem.TouchPhase.Stationary;
+                            pointerUp = touch.phase == UnityEngine.InputSystem.TouchPhase.Ended || touch.phase == UnityEngine.InputSystem.TouchPhase.Canceled;
+                        }
                     }
                 }
-            }
-            else // Fallback to mouse or pointer input
-            {
-                var pointer = Pointer.current;
-                if (pointer != null)
-                {
-                    pointerPos = pointer.position.ReadValue();
-                    bool overPanel = RectTransformUtility.RectangleContainsScreenPoint(panelRect, pointerPos);
 
-                    if (pointer.press.wasPressedThisFrame && overPanel)
-                    {
-                        isDragging = true;
-                        activePointerId = 0;
-                        dragStartPos = pointerPos;
-                        dragStartOffset = scrollOffset;
-                    }
-                    if (isDragging && activePointerId == 0)
-                    {
-                        pointerActive = true;
-                        pointerDown = pointer.press.isPressed;
-                        pointerUp = pointer.press.wasReleasedThisFrame;
-                    }
+                if (pointerActive && pointerDown)
+                {
+                    Vector2 delta = pointerPos - dragStartPos;
+                    // Adjust sensitivity if needed
+                    scrollOffset = dragStartOffset + delta.x * scrollSpeed;
+                }
+                if (pointerUp)
+                {
+                    isDragging = false;
+                    activePointerId = -1;
                 }
             }
-
-            if (pointerActive && pointerDown)
+            else
             {
-                Vector2 delta = pointerPos - dragStartPos;
-                scrollOffset = dragStartOffset + delta.x;
-            }
-            if (pointerUp)
-            {
-                isDragging = false;
-                activePointerId = -1;
-            }
-
-            // Fallback: Mouse wheel scroll
-            float wheel = Mouse.current != null ? Mouse.current.scroll.y.ReadValue() : 0;
-            if (wheel != 0f && RectTransformUtility.RectangleContainsScreenPoint(panelRect, pointerPos))
-            {
-                scrollOffset += wheel * scrollSpeed * Time.deltaTime;
+                // No scroll allowed if buttons fit
+                scrollOffset = 0f;
             }
         }
 
@@ -160,7 +143,15 @@ namespace Ouiki.SiliconeHeart.UI
         {
             float totalWidth = buttonRects.Count * (buttonWidth + buttonSpacing);
             float panelWidth = panelRect.rect.width;
-            float centerX = panelWidth * 0.5f;
+            float leftEdge = -panelWidth * 0.5f;
+
+            // If buttons fit, center them
+            float startOffset = leftEdge + buttonWidth * 0.5f;
+            if (totalWidth < panelWidth)
+            {
+                // Center the buttons if desired
+                startOffset += (panelWidth - totalWidth) * 0.5f;
+            }
 
             for (int i = 0; i < buttonRects.Count; i++)
             {
@@ -168,11 +159,19 @@ namespace Ouiki.SiliconeHeart.UI
                 float baseX = i * (buttonWidth + buttonSpacing);
                 float x = baseX + scrollOffset;
 
-                // Loop the button if it's far left or right
-                x = x % totalWidth;
-                if (x < 0) x += totalWidth;
+                // Only loop if buttons overflow the panel
+                if (totalWidth > panelWidth)
+                {
+                    x = x % totalWidth;
+                    if (x < 0) x += totalWidth;
+                }
+                else
+                {
+                    // No scroll/loop if buttons fit
+                    x = baseX;
+                }
 
-                float anchoredX = x - totalWidth * 0.5f + centerX;
+                float anchoredX = startOffset + x;
                 rt.anchoredPosition = new Vector2(anchoredX, 0);
                 rt.sizeDelta = new Vector2(buttonWidth, buttonHeight);
                 rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);

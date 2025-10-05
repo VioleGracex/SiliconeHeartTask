@@ -1,9 +1,11 @@
 using UnityEngine;
+using UnityEngine.UI;
 using Ouiki.SiliconeHeart.GridSystem;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.EnhancedTouch;
 using UnityEngine.EventSystems;
 using Zenject;
+using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 
 namespace Ouiki.SiliconeHeart.Core
 {
@@ -22,9 +24,13 @@ namespace Ouiki.SiliconeHeart.Core
         public int extraCells = 2;
 
         [Header("Camera Zoom")]
-        public float zoomSpeed = 5f;           // How fast to zoom
+        public float zoomSpeed = 2f;           // Camera zoom step for buttons/mouse wheel
         public float minZoom = 2f;             // Minimum orthographic size
         public float maxZoom = 20f;            // Maximum orthographic size
+
+        [Header("Zoom Buttons")]
+        public Button zoomInButton;
+        public Button zoomOutButton;
 
         private Vector3 dragOrigin;
         private bool isDragging;
@@ -33,26 +39,46 @@ namespace Ouiki.SiliconeHeart.Core
         private bool pinchActive = false;
         private float lastPinchDistance = 0f;
 
+        // Touch pan fields
+        private Vector2 touchPanOrigin;
+        private bool touchPanning;
+        private int panFingerId = -1;
+
         void Start()
         {
             if (targetCamera == null)
                 targetCamera = Camera.main;
+
+            // Setup listeners for zoom buttons if assigned in inspector
+            if (zoomInButton != null)
+                zoomInButton.onClick.AddListener(ZoomIn);
+
+            if (zoomOutButton != null)
+                zoomOutButton.onClick.AddListener(ZoomOut);
+        }
+
+        void OnDisable()
+        {
+            EnhancedTouchSupport.Disable();
+            if (zoomInButton != null)
+                zoomInButton.onClick.RemoveListener(ZoomIn);
+            if (zoomOutButton != null)
+                zoomOutButton.onClick.RemoveListener(ZoomOut);
         }
 
         void OnEnable()
         {
             EnhancedTouchSupport.Enable();
         }
-        void OnDisable()
-        {
-            EnhancedTouchSupport.Disable();
-        }
 
         void Update()
         {
             HandleKeyboardPan();
-            HandleMouseDrag();
-            HandleZoom();
+            if (Application.isMobilePlatform)
+                HandleTouchPan();
+            else
+                HandleMouseDrag();
+            HandleMouseWheelZoom();
             HandlePinchZoom();
         }
 
@@ -62,13 +88,10 @@ namespace Ouiki.SiliconeHeart.Core
             var kbd = Keyboard.current;
             if (kbd == null) return;
 
-            // Arrow keys
             if (kbd.leftArrowKey.isPressed) move.x -= 1;
             if (kbd.rightArrowKey.isPressed) move.x += 1;
             if (kbd.upArrowKey.isPressed) move.y += 1;
             if (kbd.downArrowKey.isPressed) move.y -= 1;
-
-            // WASD keys
             if (kbd.aKey.isPressed) move.x -= 1;
             if (kbd.dKey.isPressed) move.x += 1;
             if (kbd.wKey.isPressed) move.y += 1;
@@ -103,7 +126,39 @@ namespace Ouiki.SiliconeHeart.Core
             }
         }
 
-        void HandleZoom()
+        void HandleTouchPan()
+        {
+            if (Touch.activeTouches.Count == 1)
+            {
+                var t = Touch.activeTouches[0];
+
+                if (t.phase == UnityEngine.InputSystem.TouchPhase.Began && !EventSystem.current.IsPointerOverGameObject(t.finger.index))
+                {
+                    touchPanOrigin = t.screenPosition;
+                    panFingerId = t.touchId;
+                    touchPanning = true;
+                }
+                else if (t.phase == UnityEngine.InputSystem.TouchPhase.Moved && touchPanning && t.touchId == panFingerId)
+                {
+                    Vector2 delta = t.screenPosition - touchPanOrigin;
+                    Vector3 worldDelta = new Vector3(-delta.x, -delta.y, 0) * dragSpeed * 0.01f;
+                    PanCamera(worldDelta);
+                    touchPanOrigin = t.screenPosition;
+                }
+                else if (t.phase == UnityEngine.InputSystem.TouchPhase.Ended && t.touchId == panFingerId)
+                {
+                    touchPanning = false;
+                    panFingerId = -1;
+                }
+            }
+            else
+            {
+                touchPanning = false;
+                panFingerId = -1;
+            }
+        }
+
+        void HandleMouseWheelZoom()
         {
             var mouse = Mouse.current;
             if (mouse != null)
@@ -111,41 +166,27 @@ namespace Ouiki.SiliconeHeart.Core
                 float scrollValue = mouse.scroll.y.ReadValue();
                 if (Mathf.Abs(scrollValue) > 0.01f)
                 {
-                    float zoomDelta = -scrollValue * zoomSpeed * Time.deltaTime;
-                    float newSize = Mathf.Clamp(targetCamera.orthographicSize + zoomDelta, minZoom, maxZoom);
-                    targetCamera.orthographicSize = newSize;
-                }
-            }
-
-            // Optional: Keyboard zoom (Q/E or +/- keys)
-            var kbd = Keyboard.current;
-            if (kbd != null)
-            {
-                if (kbd.qKey.isPressed || kbd.minusKey.isPressed)
-                {
-                    float newSize = Mathf.Clamp(targetCamera.orthographicSize + zoomSpeed * Time.deltaTime, minZoom, maxZoom);
-                    targetCamera.orthographicSize = newSize;
-                }
-                if (kbd.eKey.isPressed || kbd.equalsKey.isPressed)
-                {
-                    float newSize = Mathf.Clamp(targetCamera.orthographicSize - zoomSpeed * Time.deltaTime, minZoom, maxZoom);
-                    targetCamera.orthographicSize = newSize;
+                    float step = zoomSpeed * Mathf.Sign(-scrollValue); // Negative to match typical scroll behavior
+                    float targetZoom = Mathf.Clamp(targetCamera.orthographicSize + step, minZoom, GetMaxZoom());
+                    Debug.Log($"[CameraManager] Mouse wheel zoom: {targetCamera.orthographicSize} -> {targetZoom}");
+                    targetCamera.orthographicSize = targetZoom;
                 }
             }
         }
 
         void HandlePinchZoom()
         {
-            // Only handle pinch if there are two touches
-            if (UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches.Count == 2)
+            if (Touch.activeTouches.Count == 2)
             {
-                var t0 = UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches[0];
-                var t1 = UnityEngine.InputSystem.EnhancedTouch.Touch.activeTouches[1];
+                var t0 = Touch.activeTouches[0];
+                var t1 = Touch.activeTouches[1];
 
                 Vector2 pos0 = t0.screenPosition;
                 Vector2 pos1 = t1.screenPosition;
 
                 float pinchDistance = Vector2.Distance(pos0, pos1);
+
+                float desiredZoom = targetCamera.orthographicSize;
 
                 if (!pinchActive)
                 {
@@ -155,10 +196,10 @@ namespace Ouiki.SiliconeHeart.Core
                 else
                 {
                     float pinchDelta = pinchDistance - lastPinchDistance;
-                    float zoomAmount = -pinchDelta * 0.02f; // Adjust sensitivity as needed
+                    float zoomAmount = -pinchDelta * 0.02f;
 
-                    float newSize = Mathf.Clamp(targetCamera.orthographicSize + zoomAmount, minZoom, maxZoom);
-                    targetCamera.orthographicSize = newSize;
+                    desiredZoom = Mathf.Clamp(targetCamera.orthographicSize + zoomAmount, minZoom, GetMaxZoom());
+                    targetCamera.orthographicSize = desiredZoom;
 
                     lastPinchDistance = pinchDistance;
                 }
@@ -169,11 +210,46 @@ namespace Ouiki.SiliconeHeart.Core
             }
         }
 
+        float GetMaxZoom()
+        {
+            if (gridManager == null || gridManager.gridWidth <= 0 || gridManager.gridHeight <= 0)
+                return maxZoom;
+
+            float cellSize = gridManager.cellSize;
+            int gridWidth = gridManager.gridWidth;
+            int gridHeight = gridManager.gridHeight;
+
+            float mapWidth = (gridWidth + extraCells * 2) * cellSize;
+            float mapHeight = (gridHeight + extraCells * 2) * cellSize;
+
+            float aspect = targetCamera.aspect;
+
+            float maxOrthoByHeight = mapHeight * 0.5f;
+            float maxOrthoByWidth = mapWidth * 0.5f / aspect;
+
+            float maxByCells = Mathf.Min(maxOrthoByHeight, maxOrthoByWidth);
+
+            return Mathf.Min(maxZoom, maxByCells);
+        }
+
+        public void ZoomIn()
+        {
+            float targetZoom = Mathf.Clamp(targetCamera.orthographicSize - zoomSpeed, minZoom, GetMaxZoom());
+            Debug.Log($"[CameraManager] ZoomIn button: {targetCamera.orthographicSize} -> {targetZoom}");
+            targetCamera.orthographicSize = targetZoom;
+        }
+
+        public void ZoomOut()
+        {
+            float targetZoom = Mathf.Clamp(targetCamera.orthographicSize + zoomSpeed, minZoom, GetMaxZoom());
+            Debug.Log($"[CameraManager] ZoomOut button: {targetCamera.orthographicSize} -> {targetZoom}");
+            targetCamera.orthographicSize = targetZoom;
+        }
+
         public void PanCamera(Vector3 delta)
         {
             Vector3 newPos = targetCamera.transform.position + delta;
 
-            // Clamp to ground bounds (+ extra cells)
             if (gridManager != null && gridManager.gridWidth > 0 && gridManager.gridHeight > 0)
             {
                 Vector2 minBounds = gridManager.CellWorldPos(new Vector2Int(-extraCells, -extraCells));
@@ -187,7 +263,6 @@ namespace Ouiki.SiliconeHeart.Core
                 float minY = minBounds.y + camHalfHeight;
                 float maxY = maxBounds.y - camHalfHeight;
 
-                // If grid is smaller than camera view, fallback to fallback zone
                 if (maxX < minX || maxY < minY)
                 {
                     minX = fallbackZoneCenter.x - fallbackZoneSize.x / 2f + camHalfWidth;

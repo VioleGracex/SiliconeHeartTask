@@ -5,6 +5,7 @@ using Ouiki.SiliconeHeart.Buildings;
 using Ouiki.SiliconeHeart.GridSystem;
 using Zenject;
 using Ouiki.SiliconeHeart.Persistence;
+using Ouiki.SiliconeHeart.PlayGameMode;
 
 namespace Ouiki.SiliconeHeart.Persistence
 {
@@ -32,7 +33,11 @@ namespace Ouiki.SiliconeHeart.Persistence
         [Inject] public BuildingManager buildingManager { get; private set; }
         [Inject] public GridManager gridManager { get; private set; }
         [Inject] public List<BuildingDataSO> buildingTypes { get; private set; }
+        [Inject] public PlayModeManager playModeManager { get; private set; }
         #endregion
+
+        [Header("Startup Options")]
+        public bool loadLastSaveOnLaunch = false; // <--- Optional, but you should control this via Bootstrap
 
         #region Save
         public void Save()
@@ -77,7 +82,7 @@ namespace Ouiki.SiliconeHeart.Persistence
             foreach (var b in new List<FieldBuilding>(buildingManager.placedBuildings))
             {
                 if (b != null)
-                    buildingManager.RemoveBuilding(b); // The central removal method
+                    buildingManager.RemoveBuilding(b);
             }
             buildingManager.placedBuildings.Clear();
 
@@ -87,6 +92,10 @@ namespace Ouiki.SiliconeHeart.Persistence
             var json = File.ReadAllText(saveFilePath);
             var data = JsonUtility.FromJson<SaveData>(json);
 
+            // --- FIX: Force Place mode for loading ---
+            var oldMode = playModeManager.CurrentMode;
+            playModeManager.SetPlaceMode();
+
             foreach (var placed in data.placedBuildings)
             {
                 var def = buildingTypes.Find(b => b.BuildingID == placed.buildingID);
@@ -94,13 +103,28 @@ namespace Ouiki.SiliconeHeart.Persistence
                 {
                     Vector2Int gridPos = new Vector2Int(placed.gridPosX, placed.gridPosY);
                     buildingManager.activeBuilding = def;
-                    buildingManager.TryPlaceBuilding(gridPos);
+                    bool placedOk = buildingManager.TryPlaceBuilding(gridPos);
+                    if (!placedOk)
+                        Debug.LogWarning($"[SaveLoadManager] Failed to place building {def.BuildingID} at {gridPos}");
                 }
                 else
                 {
                     Debug.LogWarning($"[SaveLoadManager] Building definition not found for ID: {placed.buildingID}");
                 }
             }
+
+            // Restore to old mode
+            switch (oldMode)
+            {
+                case GamePlayMode.Remove:
+                    playModeManager.SetRemoveMode();
+                    break;
+                case GamePlayMode.None:
+                    playModeManager.SetNoneMode();
+                    break;
+                // Optionally handle more modes
+            }
+
             Debug.Log($"[SaveLoadManager] Loaded {data.placedBuildings.Count} buildings from save");
         }
         #endregion

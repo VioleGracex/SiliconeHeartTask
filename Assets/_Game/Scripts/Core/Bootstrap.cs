@@ -7,11 +7,13 @@ namespace Ouiki.SiliconeHeart.Core
     using Ouiki.SiliconeHeart.UI;
     using Zenject;
     using Ouiki.SiliconeHeart.Input;
-using Ouiki.SiliconeHeart.PlayGameMode;
-
+    using Ouiki.SiliconeHeart.PlayGameMode;
 
     public class Bootstrap : MonoBehaviour
     {
+        [Header("Startup Options")]
+        public bool loadLastSaveOnLaunch = false; // <--- Added option
+
         [Inject] private GridManager gridManager;
         [Inject] private BuildingManager buildingManager;
         [Inject] private SaveLoadManager saveLoadManager;
@@ -21,7 +23,7 @@ using Ouiki.SiliconeHeart.PlayGameMode;
         [Inject] private MainUIController mainUIController;
         [Inject] private InputHandler inputHandler;
         [Inject] private InfiniteScrollPanel infiniteScrollPanel;
-        [Inject] private PlayModeManager gameModeManager; // <--- Injected, not static
+        [Inject] private PlayModeManager gameModeManager;
 
         void Start()
         {
@@ -38,6 +40,13 @@ using Ouiki.SiliconeHeart.PlayGameMode;
                 gameModeManager.SetNoneMode();
 
             inputHandler.Init();
+
+            // --- Load last save if requested ---
+            if (loadLastSaveOnLaunch && saveLoadManager != null)
+            {
+                Debug.Log("[Bootstrap] Loading last save on launch...");
+                saveLoadManager.Load();
+            }
         }
     }
 }
